@@ -1,0 +1,28 @@
+﻿target,matched_name,board_type,score,reason
+AI算力,算力租赁,concept,1.0,exact:算力租赁
+光模块/光通信,通信设备,industry,1.0,exact:通信设备
+CPO/硅光,共封装光学(CPO),concept,0.92,contains:CPO
+PCB/CCL/电子布,PCB概念,concept,0.92,contains:PCB
+AI服务器,云计算,concept,1.0,exact:云计算
+液冷/数据中心温控,液冷服务器,concept,1.0,exact:液冷服务器
+算力租赁/IDC,算力租赁,concept,1.0,exact:算力租赁
+半导体设备,光刻机,concept,1.0,exact:光刻机
+半导体材料,电子化学品,industry,1.0,exact:电子化学品
+存储芯片,存储芯片,concept,1.0,exact:存储芯片
+长鑫/长江存储产业链,存储芯片,concept,1.0,exact:存储芯片
+先进封装/Chiplet,先进封装,concept,1.0,exact:先进封装
+封测/测试设备,半导体,industry,0.86,contains:半导体测试
+AI芯片/GPU/ASIC,AI PC,concept,0.75,fuzzy:ASIC
+人形机器人,人形机器人,concept,1.0,exact:人形机器人
+减速器/丝杠/电机/传感器,减速器,concept,1.0,exact:减速器
+PEEK材料,PEEK材料,concept,1.0,exact:peek材料
+智能驾驶/车路云,无人驾驶,concept,1.0,exact:无人驾驶
+低空经济/eVTOL,低空经济,concept,1.0,exact:低空经济
+卫星互联网/商业航天,商业航天,concept,1.0,exact:商业航天
+AI应用/大模型/Agent,AI应用,concept,1.0,exact:AI应用
+信创/国产软件,信创,concept,1.0,exact:信创
+数据要素,数据要素,concept,1.0,exact:数据要素
+网络安全,网络安全,concept,1.0,exact:网络安全
+AI手机/AI PC/消费电子,AI手机,concept,1.0,exact:AI手机
+MR/AR/VR,虚拟现实,concept,1.0,exact:虚拟现实
+固态电池/储能/新能源科技,固态电池,concept,1.0,exact:固态电池
