@@ -42,6 +42,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import requests
+import board_config
 
 try:
     from bs4 import BeautifulSoup
@@ -127,6 +128,11 @@ TARGET_BOARDS: Dict[str, List[str]] = {
     "信创/国产软件": ["信创", "国产软件", "操作系统", "数据库", "软件开发"],
     "数据要素": ["数据要素", "数据确权", "数据中心", "政务数据"],
     "网络安全": ["网络安全", "数据安全", "信息安全", "密码安全"],
+    "化工": ["化工", "基础化工", "化学原料", "化学制品", "化工原料", "化工行业"],
+    "证券": ["证券", "券商", "证券板块", "多元金融", "互联网金融", "证券行业"],
+    "食品饮料/白酒": ["食品饮料", "白酒", "啤酒", "乳业", "调味品", "饮料乳品", "休闲食品", "农产品加工"],
+    "医美美妆/美容护理": ["美容护理", "医美", "医疗美容", "化妆品", "美妆", "个人护理", "护肤品"],
+    "商贸零售/奢侈品/旅游酒店": ["商贸零售", "商业百货", "零售", "奢侈品", "珠宝首饰", "纺织服饰", "旅游酒店", "酒店餐饮", "免税店"],
     "AI手机/AI PC/消费电子": ["AI手机", "AI PC", "消费电子", "苹果概念", "智能穿戴"],
     "MR/AR/VR": ["MR", "AR", "VR", "虚拟现实", "增强现实", "混合现实"],
     "固态电池/储能/新能源科技": ["固态电池", "储能", "钠离子电池", "锂电池", "新能源"],
@@ -140,6 +146,10 @@ class BoardMatch:
     board_type: str  # concept / industry
     score: float
     reason: str
+
+
+DEFAULT_BOARD_CONFIG_PATH = board_config.DEFAULT_BOARD_CONFIG_PATH
+TARGET_BOARDS = board_config.DEFAULT_TARGET_BOARDS.copy()
 
 
 # =========================
@@ -526,9 +536,9 @@ def match_one_target(target: str, aliases: List[str], universe: pd.DataFrame) ->
     return best
 
 
-def build_matches(universe: pd.DataFrame) -> List[BoardMatch]:
+def build_matches(universe: pd.DataFrame, target_boards: Dict[str, List[str]]) -> List[BoardMatch]:
     matches = []
-    for target, aliases in TARGET_BOARDS.items():
+    for target, aliases in target_boards.items():
         m = match_one_target(target, aliases, universe)
         if m is not None:
             matches.append(m)
@@ -782,7 +792,7 @@ def save_outputs(df: pd.DataFrame, out_dir: Path, report_date: str, lookback: in
 # =========================
 def main():
     parser = argparse.ArgumentParser(description="A股板块景气度与资金流日报")
-    parser.add_argument("--out", default="./sector_reports", help="输出目录")
+    parser.add_argument("--out", default="./sector_report", help="输出目录")
     parser.add_argument("--lookback", type=int, default=20, help="近 N 个交易日涨跌幅，默认 20")
     parser.add_argument("--topn", type=int, default=10, help="报告每个榜单展示数量")
     parser.add_argument("--sleep", type=float, default=0.15, help="抓取单个板块后的暂停秒数，防止过快请求")
@@ -839,5 +849,92 @@ def main():
     print("\n[提示] 如果某些板块匹配不准，请在 TARGET_BOARDS 里调整 aliases。")
 
 
+def run_from_config():
+    parser = argparse.ArgumentParser(description="A股板块景气度与资金流日报")
+    parser.add_argument("--out", default="./sector_report", help="输出目录")
+    parser.add_argument("--config", default=str(DEFAULT_BOARD_CONFIG_PATH), help="目标板块配置文件路径")
+    parser.add_argument("--lookback", type=int, default=20, help="近 N 个交易日涨跌幅统计窗口")
+    parser.add_argument("--topn", type=int, default=10, help="报告每个榜单显示数量")
+    parser.add_argument("--sleep", type=float, default=0.15, help="抓取单个板块后的暂停秒数")
+    parser.add_argument("--provider", choices=["auto", "akshare", "ths"], default="auto", help="数据源：auto 自动回退，akshare 东方财富，ths 同花顺")
+    parser.add_argument("--skip-config-refresh", action="store_true", help="跳过运行时自动更新板块配置文件")
+    parser.add_argument("--no-proxy", action="store_true", help="忽略当前 Shell 代理，直连抓取数据")
+    args = parser.parse_args()
+
+    removed_proxies = sanitize_proxy_env(force_disable=args.no_proxy)
+    if removed_proxies:
+        print("[INFO] 已清理代理环境变量: " + "; ".join(removed_proxies))
+
+    if args.provider == "auto":
+        try:
+            universe = fetch_board_universe_ak()
+            effective_provider = "akshare"
+            print("[INFO] 数据源自动选择: akshare")
+        except Exception as exc:
+            print(f"[WARN] akshare 板块名称获取失败: {exc}", file=sys.stderr)
+            universe = fetch_board_universe_ths()
+            effective_provider = "ths"
+            print("[INFO] 数据源自动选择: ths")
+    else:
+        effective_provider = args.provider
+        universe = fetch_board_universe(provider=effective_provider)
+
+    config_path = Path(args.config)
+    if args.skip_config_refresh:
+        print(f"[INFO] 跳过自动更新板块配置: {config_path}")
+    else:
+        existing_payload = board_config.load_board_config(
+            config_path=config_path,
+            fallback_targets=TARGET_BOARDS,
+        )
+        refreshed_payload = board_config.build_board_config(
+            universe=universe,
+            provider=effective_provider,
+            existing_payload=existing_payload,
+        )
+        board_config.save_board_config(refreshed_payload, config_path)
+        board_count = sum(len(items) for items in refreshed_payload.get("board_catalog", {}).values())
+        print(f"[INFO] 已自动更新板块配置: {config_path} ({board_count} 个可抓取板块)")
+
+    target_boards = board_config.load_target_boards(
+        config_path=config_path,
+        fallback_targets=TARGET_BOARDS,
+    )
+
+    report_date = today_str()
+    print(f"[INFO] 开始生成板块日报: {display_date()}")
+    print("[INFO] 获取板块名称...")
+    print(f"[INFO] 板块 universe: {len(universe)}")
+    print(f"[INFO] 配置中启用目标板块: {len(target_boards)}")
+
+    print("[INFO] 匹配目标板块...")
+    matches = build_matches(universe, target_boards)
+    match_df = pd.DataFrame([m.__dict__ for m in matches])
+    unmatched = match_df[match_df["score"] <= 0]
+    if not unmatched.empty:
+        print("[WARN] 未匹配板块: " + ", ".join(unmatched["target"].tolist()), file=sys.stderr)
+
+    print("[INFO] 获取资金流...")
+    flow = fetch_fund_flow(provider=effective_provider)
+    print(f"[INFO] 资金流记录: {len(flow)}")
+
+    print("[INFO] 分析板块...")
+    summary = analyze_boards(matches, flow, lookback=args.lookback, sleep=args.sleep, provider=effective_provider)
+
+    out_dir = Path(args.out)
+    csv_path, md_path = save_outputs(summary, out_dir, report_date, args.lookback, args.topn)
+    match_path = out_dir / f"board_match_{report_date}.csv"
+    match_df.to_csv(match_path, index=False, encoding="utf-8-sig")
+
+    print("\n[OK] 已生成：")
+    print(f"- 明细 CSV: {csv_path}")
+    print(f"- 日报 MD : {md_path}")
+    print(f"- 匹配表  : {match_path}")
+    print(f"\n[提示] 如需调整目标板块或 aliases，请修改配置文件: {config_path}")
+
+
+main = run_from_config
+
+
 if __name__ == "__main__":
-    main()
+    run_from_config()
