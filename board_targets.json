@@ -1,9 +1,9 @@
 {
   "meta": {
     "schema_version": 1,
-    "generated_at": "2026-05-20 00:19:31",
+    "generated_at": "2026-05-20 15:17:13",
     "source_provider": "ths",
-    "description": "target_groups 可直接修改，board_catalog 可通过 generate_board_config.py 自动刷新。"
+    "description": "target_groups 可直接修改，board_catalog 为自动抓取的全量板块参考清单。"
   },
   "target_groups": {
     "科技": [
@@ -1701,6 +1701,11 @@
         "board_code": "309177"
       },
       {
+        "board_name": "同花顺果指数",
+        "board_type": "concept",
+        "board_code": "309136"
+      },
+      {
         "board_name": "同花顺漂亮100",
         "board_type": "concept",
         "board_code": "308718"
@@ -2416,6 +2421,11 @@
         "board_code": "308901"
       },
       {
+        "board_name": "维生素",
+        "board_type": "concept",
+        "board_code": "309135"
+      },
+      {
         "board_name": "综合",
         "board_type": "industry",
         "board_code": "881165"
@@ -2544,6 +2554,11 @@
         "board_name": "语音技术",
         "board_type": "concept",
         "board_code": "300917"
+      },
+      {
+        "board_name": "财税数字化",
+        "board_type": "concept",
+        "board_code": "309134"
       },
       {
         "board_name": "贵金属",

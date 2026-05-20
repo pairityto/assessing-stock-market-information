@@ -344,7 +344,11 @@ def fetch_fund_flow_ths_one(kind: str, period: str) -> pd.DataFrame:
     board_part = "" if period == "今日" else f"board/{period[:-1]}/"
     url = f"http://data.10jqka.com.cn/funds/{route}/{board_part}field/tradezdf/order/desc/page/1/ajax/1/free/1/"
     response = make_request(url, headers=get_ths_fund_flow_headers(kind), timeout=20)
-    tables = pd.read_html(StringIO(response.text))
+    try:
+        tables = pd.read_html(StringIO(response.text))
+    except Exception as exc:
+        preview = (response.text or "").strip().replace("\n", " ")[:160]
+        raise RuntimeError(f"同花顺 {kind} {period} 资金流页面无可解析表格: {url} | preview={preview!r}") from exc
     if not tables:
         raise RuntimeError(f"同花顺 {kind} {period} 资金流返回空表")
     df = tables[0].copy()
@@ -363,9 +367,16 @@ def fetch_fund_flow_ths_one(kind: str, period: str) -> pd.DataFrame:
 
 def fetch_fund_flow_ths() -> pd.DataFrame:
     frames = []
+    errors = []
     for kind in ["concept", "industry"]:
         for period in ["今日", "5日", "10日"]:
-            frames.append(fetch_fund_flow_ths_one(kind, period))
+            try:
+                frames.append(fetch_fund_flow_ths_one(kind, period))
+            except Exception as exc:
+                errors.append(f"{kind}/{period}: {exc}")
+                print(f"[WARN] 同花顺资金流抓取失败 {kind}/{period}: {exc}", file=sys.stderr)
+    if not frames:
+        raise RuntimeError("同花顺资金流全部抓取失败。 " + " | ".join(errors))
     return pd.concat(frames, ignore_index=True, sort=False)
 
 
@@ -880,6 +891,7 @@ def run_from_config():
         universe = fetch_board_universe(provider=effective_provider)
 
     config_path = Path(args.config)
+    refreshed_payload = None
     if args.skip_config_refresh:
         print(f"[INFO] 跳过自动更新板块配置: {config_path}")
     else:
@@ -892,14 +904,22 @@ def run_from_config():
             provider=effective_provider,
             existing_payload=existing_payload,
         )
-        board_config.save_board_config(refreshed_payload, config_path)
         board_count = sum(len(items) for items in refreshed_payload.get("board_catalog", {}).values())
-        print(f"[INFO] 已自动更新板块配置: {config_path} ({board_count} 个可抓取板块)")
+        try:
+            board_config.save_board_config(refreshed_payload, config_path)
+            print(f"[INFO] 已自动更新板块配置: {config_path} ({board_count} 个可抓取板块)")
+        except PermissionError as exc:
+            print(f"[WARN] 板块配置文件写入失败，将继续使用本次内存中的最新板块列表: {exc}", file=sys.stderr)
+        except Exception as exc:
+            print(f"[WARN] 板块配置文件更新失败，将继续使用本次内存中的最新板块列表: {exc}", file=sys.stderr)
 
-    target_boards = board_config.load_target_boards(
-        config_path=config_path,
-        fallback_targets=TARGET_BOARDS,
-    )
+    if refreshed_payload is not None:
+        target_boards = board_config.target_boards_from_payload(refreshed_payload)
+    else:
+        target_boards = board_config.load_target_boards(
+            config_path=config_path,
+            fallback_targets=TARGET_BOARDS,
+        )
 
     report_date = today_str()
     print(f"[INFO] 开始生成板块日报: {display_date()}")
@@ -915,8 +935,12 @@ def run_from_config():
         print("[WARN] 未匹配板块: " + ", ".join(unmatched["target"].tolist()), file=sys.stderr)
 
     print("[INFO] 获取资金流...")
-    flow = fetch_fund_flow(provider=effective_provider)
-    print(f"[INFO] 资金流记录: {len(flow)}")
+    try:
+        flow = fetch_fund_flow(provider=effective_provider)
+        print(f"[INFO] 资金流记录: {len(flow)}")
+    except Exception as exc:
+        print(f"[WARN] 资金流抓取失败，将继续生成不含资金流的日报: {exc}", file=sys.stderr)
+        flow = pd.DataFrame()
 
     print("[INFO] 分析板块...")
     summary = analyze_boards(matches, flow, lookback=args.lookback, sleep=args.sleep, provider=effective_provider)

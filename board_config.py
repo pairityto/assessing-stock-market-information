@@ -186,6 +186,10 @@ def iter_target_entries(payload: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
 
 def load_target_boards(config_path: Path | str | None = None, fallback_targets: Dict[str, List[str]] | None = None) -> Dict[str, List[str]]:
     payload = load_board_config(config_path=config_path, fallback_targets=fallback_targets)
+    return target_boards_from_payload(payload)
+
+
+def target_boards_from_payload(payload: Dict[str, Any]) -> Dict[str, List[str]]:
     target_boards: Dict[str, List[str]] = {}
     for entry in iter_target_entries(payload):
         if not entry["enabled"]:
