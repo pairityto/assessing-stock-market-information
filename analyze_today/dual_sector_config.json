@@ -1,0 +1,33 @@
+{
+  "global": {
+    "end_date": "",
+    "lookback_days_for_download": 500,
+    "sample_size": 10000,
+    "top_n": 10,
+    "strategy": {
+      "lookback_days": 252,
+      "percentile": 0.2,
+      "max_hold_days": 90,
+      "stop_profit": 0.25,
+      "random_select": false
+    }
+  },
+  "sectors": [
+    {
+      "name": "CSI300-A",
+      "components_csv": "data/CSI300_components.csv",
+      "symbol_column": "TickFlow代码",
+      "data_root": "data/CSI300_A",
+      "auto_fetch_csi300_if_missing": true,
+      "enabled": true
+    },
+    {
+      "name": "CSI300-B",
+      "components_csv": "data/CSI300_components.csv",
+      "symbol_column": "TickFlow代码",
+      "data_root": "data/CSI300_B",
+      "auto_fetch_csi300_if_missing": true,
+      "enabled": true
+    }
+  ]
+}

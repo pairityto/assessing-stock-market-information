@@ -1,7 +1,7 @@
 {
   "meta": {
     "schema_version": 1,
-    "generated_at": "2026-05-20 15:17:13",
+    "generated_at": "2026-06-03 00:42:07",
     "source_provider": "ths",
     "description": "target_groups 可直接修改，board_catalog 为自动抓取的全量板块参考清单。"
   },
@@ -500,7 +500,7 @@
         "board_code": "307940"
       },
       {
-        "board_name": "数据中心",
+        "board_name": "数据中心(AIDC)",
         "board_type": "concept",
         "board_code": "308642"
       },

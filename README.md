@@ -1,149 +1,213 @@
-For better reviewing the A-Share market
-**工作流**
+# A股板块日报工具
 
-整个流程现在分成两步：
+这套工具现在默认采用`AkShare + 东方财富板块口径`，并拆成两套可独立维护的配置：
 
-1. 先抓“可用板块总表”，生成一份你能改的配置文件
-2. 再让日报脚本按这份配置文件去跑
+- `board_targets_ak_industry.json`
+- `board_targets_ak_concept.json`
 
-核心文件是这几个：
+对应两个分析视角：
 
-- 配置文件：board_targets.json (line 1)
-- 全量板块生成器：generate_board_config.py (line 1)
-- 日报脚本：sector_daily_report.py (line 852)
-- 相关股票脚本：sector_related_stocks.py (line 358)
-- 共享配置逻辑：board_config.py (line 1)
+- `行业板块`
+  - 更稳定，适合看行业轮动、结构强弱
+- `概念板块`
+  - 更新更快，适合看 AI、算力、AIDC、CPO、液冷、东数西算这类热点题材
 
-**你平时怎么用**
+## 当前推荐入口
 
-先刷新全量板块：
+- 生成两套配置：`generate_ak_board_configs.py`
+- 生成双视角日报：`dual_board_daily_report.py`
 
-powershell
+## 环境
 
-`python generate_board_config.py --provider ths --no-proxy`
+```powershell
+C:\Users\Du\miniconda3\python.exe -m pip install -r requirements.txt
+```
 
-然后去改配置文件里的 target_groups：
+如果缺依赖，也可以单独安装：
 
-- 这里决定 sector_daily_report 要跟踪哪些“目标板块”
-- 每项可以改：
-    - target：你自己定义的目标名
-    - aliases：用于匹配真实板块名的别名
-    - enabled：true/false，是否启用
+```powershell
+C:\Users\Du\miniconda3\python.exe -m pip install akshare pandas numpy requests tqdm
+```
 
-再跑日报：
+## 核心文件
 
-powershell
+- `ak_board_config.py`
+  - AkShare 行业/概念配置构建逻辑
+- `generate_ak_board_configs.py`
+  - 根据当前 AkShare 板块列表生成两份配置 JSON
+- `dual_board_daily_report.py`
+  - 按行业板块和概念板块分别分析、分别排序，并输出总榜
+- `sector_daily_report.py`
+  - 原有单配置日报脚本，继续保留
+- `sector_related_stocks.py`
+  - 查某个目标板块的相关个股
 
-`python sector_daily_report.py --provider ths --no-proxy`
+## 第一次使用
 
-如果你要找某个目标板块下最相关的股票：
+### 1. 生成两份配置
 
-powershell
+```powershell
+python .\generate_ak_board_configs.py --provider akshare --no-proxy
+```
 
-`python sector_related_stocks.py --target "化工" --no-proxy python sector_related_stocks.py --target "科技,金融" --topn 8 --no-proxy`
+生成文件：
 
-**配置文件结构**
+- `board_targets_ak_industry.json`
+- `board_targets_ak_concept.json`
 
-board_targets.json 主要有两块：
+### 2. 再跑双视角日报
 
-- target_groups  
-    这是你真正要维护的内容，按大类分组，比如 科技、金融、消费、化工、能源
-- board_catalog  
-    这是自动抓下来的“当前能抓到的全部板块参考清单”，方便你挑选和改别名
+```powershell
+python .\dual_board_daily_report.py --provider akshare --no-proxy
+```
 
-简单说：
+## 你平时主要改哪里
 
-- target_groups 决定“我要跟踪谁”
-- board_catalog 告诉你“市场上现在能抓到谁”
+通常不需要手改大量 JSON，先改生成器生成出来的配置文件里的：
 
-**输入参数**
+- `analysis_selection.exact_names`
+- `analysis_selection.include_keywords`
+- `analysis_selection.exclude_keywords`
 
-generate_board_config.py
+### 行业板块配置
 
-- --provider {auto,akshare,ths}：选数据源
-- --out：输出配置文件路径
-- --no-proxy：忽略当前代理
+文件：
 
-sector_daily_report.py
+- `board_targets_ak_industry.json`
 
-- --out：日报输出目录，默认 ./sector_report
-- --config：配置文件路径，默认 ./board_targets.json
-- --lookback：统计窗口，默认 20
-- --topn：每个榜单显示几条，默认 10
-- --sleep：单板块抓取间隔
-- --provider {auto,akshare,ths}
-- --no-proxy
+作用：
 
-sector_related_stocks.py
+- 选择你今天要看的行业板块
+- 例如：`半导体`、`证券`、`通信设备`、`软件开发`
 
-- --target：输入一个或多个目标板块
-- --topn：每个目标板块输出前几只股票
-- --max-board-candidates：每个目标板块最多展开多少个候选真实板块
-- --out：输出目录
-- --config：配置文件路径
-- --no-proxy
+规则：
 
-**运行时你会看到什么进度**
+- `exact_names`
+  - 精确选中的板块名
+- `include_keywords`
+  - 按关键词批量选板块
+- `exclude_keywords`
+  - 从已选结果里剔除
 
-generate_board_config.py
+### 概念板块配置
 
-- 清理代理
-- 选择数据源
-- 抓全量板块
-- 写入 board_targets.json
-- 打印板块总数
+文件：
 
-sector_daily_report.py
+- `board_targets_ak_concept.json`
 
-- 清理代理
-- 选择数据源
-- 读取配置文件
-- 打印 板块 universe 数量
-- 打印 配置中启用目标板块 数量
-- 匹配目标板块
-- 抓资金流
-- 分析板块
-- 输出 CSV / Markdown / 匹配表
+作用：
 
-sector_related_stocks.py
+- 选择你今天要看的热点概念
+- 例如：`算力概念`、`东数西算`、`数据中心`、`液冷服务器`、`CPO概念`、`AI智能体`
 
-- 清理代理
-- 读取配置文件
-- 解析 --target
-- 匹配候选真实板块
-- 抓各候选板块成份股
-- 算相关度
-- 输出 CSV，并在终端打印前几条
+规则同上：
 
-**生成文件**
+- `exact_names`
+- `include_keywords`
+- `exclude_keywords`
 
-刷新板块配置后会生成：
+## 板块分析逻辑
 
-- board_targets.json (line 1)
+日报会对两类板块分别做以下分析：
 
-跑日报后会生成到 sector_report：
+- 历史 K 线
+  - `1日涨跌幅`
+  - `5日涨跌幅`
+  - `20日涨跌幅`
+- 成交活跃度
+  - `成交额放量倍数`
+- 资金流
+  - `主力净流入_今日`
+  - `主力净流入_5日`
+  - `主力净流入_10日`
+  - `主力净占比_今日%`
+- 综合打分
+  - `景气度分`
+- 标签
+  - `低位启动`
+  - `短线加速`
+  - `高位强趋势`
+  - `资金流出/弱势`
 
-- sector_summary_20260520.csv
-- sector_report_20260520.md
-- board_match_20260520.csv
+## 输出结果
 
-跑相关股票后会生成到同目录：
+运行：
 
-- sector_related_stocks_YYYYMMDD.csv
+```powershell
+python .\dual_board_daily_report.py --provider akshare --no-proxy
+```
 
-**推荐日常用法**
+默认会生成：
 
-每天一般这样就够了：
+- `sector_report\industry_summary_YYYYMMDD.csv`
+- `sector_report\industry_match_YYYYMMDD.csv`
+- `sector_report\concept_summary_YYYYMMDD.csv`
+- `sector_report\concept_match_YYYYMMDD.csv`
+- `sector_report\board_dual_summary_YYYYMMDD.csv`
+- `sector_report\board_dual_report_YYYYMMDD.md`
 
-powershell
+其中：
 
-`python generate_board_config.py --provider ths --no-proxy python sector_daily_report.py --provider ths --no-proxy python sector_related_stocks.py --target "科技,金融,消费" --topn 10 --no-proxy`
+- `industry_summary`
+  - 行业板块单独排序结果
+- `concept_summary`
+  - 概念板块单独排序结果
+- `board_dual_summary`
+  - 行业 + 概念合并总榜
+- `board_dual_report`
+  - Markdown 版日报
 
-如果你不想每天刷新全量板块，也可以只在需要时更新一次 board_targets.json，平时直接跑日报。
+## 推荐日常流程
 
-**现在这套规则的重点**
+### 每天盘后
 
-- 你以后不需要再改源码里的板块列表
-- 只改 board_targets.json
-- sector_daily_report 和 sector_related_stocks 会共用同一套目标板块配置
-- 当前大类归档是关键词规则分类，已经能用，但还可以继续细化
+```powershell
+python .\generate_ak_board_configs.py --provider akshare --no-proxy
+python .\dual_board_daily_report.py --provider akshare --no-proxy
+```
+
+### 只看热点 AI 主题
+
+去改：
+
+- `board_targets_ak_concept.json`
+
+把这些放进 `exact_names` 或 `include_keywords`：
+
+- `算力`
+- `东数西算`
+- `数据中心`
+- `AIDC`
+- `液冷`
+- `CPO`
+- `AI智能体`
+- `AI芯片`
+- `AIGC`
+
+### 只看稳定行业
+
+去改：
+
+- `board_targets_ak_industry.json`
+
+例如保留：
+
+- `半导体`
+- `证券`
+- `通信设备`
+- `软件开发`
+- `自动化设备`
+
+## 和旧版配置的关系
+
+仓库里原来的这些文件仍保留：
+
+- `board_targets.json`
+- `sw_board_config.py`
+- `csi_board_config.py`
+
+但当前默认推荐路线已经切换为：
+
+- `AkShare 行业板块配置`
+- `AkShare 概念板块配置`
+- `双视角日报`

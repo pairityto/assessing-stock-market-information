@@ -461,6 +461,30 @@ def fetch_board_universe(provider: str = "auto") -> pd.DataFrame:
     raise RuntimeError("无法获取任何板块名称，请检查网络或数据源。 " + " | ".join(errors))
 
 
+def resolve_board_universe_provider(provider: str = "auto") -> tuple[str, pd.DataFrame]:
+    """Resolve the board universe provider with a clear combined error on fallback failure."""
+    if provider != "auto":
+        return provider, fetch_board_universe(provider=provider)
+
+    ak_exc: Optional[Exception] = None
+    try:
+        return "akshare", fetch_board_universe_ak()
+    except Exception as exc:
+        ak_exc = exc
+        print(f"[WARN] akshare 板块名称获取失败，将回退到同花顺: {exc}", file=sys.stderr)
+
+    try:
+        return "ths", fetch_board_universe_ths()
+    except Exception as ths_exc:
+        raise RuntimeError(
+            "自动选择板块数据源失败。"
+            f" akshare/东方财富失败: {ak_exc};"
+            f" ths/同花顺失败: {ths_exc}."
+            " 这通常是网络握手异常、代理干扰，或同花顺页面结构变化导致。"
+            " 可先重试 `--no-proxy`，若仍失败，建议升级 akshare 或稍后再试。"
+        ) from ths_exc
+
+
 def fetch_fund_flow(provider: str = "auto") -> pd.DataFrame:
     """获取今日、5日、10日行业/概念资金流。"""
     if provider == "akshare":

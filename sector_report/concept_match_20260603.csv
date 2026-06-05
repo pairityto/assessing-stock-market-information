@@ -1,0 +1,16 @@
+﻿target,matched_name,board_type,score,reason
+AI PC,AI PC,concept,1.0,exact:AI PC
+AI应用,AI应用,concept,1.0,exact:AI应用
+AI手机,AI手机,concept,1.0,exact:AI手机
+AI智能体,AI智能体,concept,1.0,exact:AI智能体
+AI眼镜,AI眼镜,concept,1.0,exact:AI眼镜
+AI视频,AI视频,concept,1.0,exact:AI视频
+AI语料,AI语料,concept,1.0,exact:AI语料
+东数西算(算力),东数西算(算力),concept,1.0,exact:东数西算(算力)
+中国AI 50,中国AI 50,concept,1.0,exact:中国AI 50
+共封装光学(CPO),共封装光学(CPO),concept,1.0,exact:共封装光学(CPO)
+多模态AI,多模态AI,concept,1.0,exact:多模态AI
+数据中心(AIDC),数据中心(AIDC),concept,1.0,exact:数据中心(AIDC)
+智谱AI,智谱AI,concept,1.0,exact:智谱AI
+液冷服务器,液冷服务器,concept,1.0,exact:液冷服务器
+算力租赁,算力租赁,concept,1.0,exact:算力租赁

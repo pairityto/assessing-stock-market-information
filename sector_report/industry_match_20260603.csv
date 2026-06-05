@@ -1,0 +1,7 @@
+﻿target,matched_name,board_type,score,reason
+半导体,半导体,industry,1.0,exact:半导体
+电池,电池,industry,1.0,exact:电池
+自动化设备,自动化设备,industry,1.0,exact:自动化设备
+证券,证券,industry,1.0,exact:证券
+软件开发,软件开发,industry,1.0,exact:软件开发
+通信设备,通信设备,industry,1.0,exact:通信设备

@@ -1,0 +1,8 @@
+akshare
+beautifulsoup4
+lxml
+numpy
+pandas
+py-mini-racer
+requests
+tqdm
